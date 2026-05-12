@@ -1,0 +1,200 @@
+{
+  "rf_n100_dNone": {
+    "cv": {
+      "acc": 0.638752052545156,
+      "f1": 0.32763408051319154,
+      "per_class": {
+        "Cognitive": 0.9079754601226994,
+        "Cognitive_n": 815,
+        "Affective": 0.006993006993006993,
+        "Affective_n": 143,
+        "Motivational": 0.1423076923076923,
+        "Motivational_n": 260
+      }
+    },
+    "test": {
+      "acc": 0.6928327645051194,
+      "f1": 0.32676842290193914,
+      "per_class": {
+        "Cognitive": 0.9209302325581395,
+        "Cognitive_n": 860,
+        "Affective": 0.015151515151515152,
+        "Affective_n": 132,
+        "Motivational": 0.1,
+        "Motivational_n": 180
+      }
+    },
+    "pred_share": [
+      0.9155290102389079,
+      0.005119453924914676,
+      0.07935153583617748
+    ],
+    "n_estimators": 100,
+    "max_depth": null
+  },
+  "rf_n100_d8": {
+    "cv": {
+      "acc": 0.6568144499178982,
+      "f1": 0.31905190446076764,
+      "per_class": {
+        "Cognitive": 0.947239263803681,
+        "Cognitive_n": 815,
+        "Affective": 0.0,
+        "Affective_n": 143,
+        "Motivational": 0.1076923076923077,
+        "Motivational_n": 260
+      }
+    },
+    "test": {
+      "acc": 0.7081911262798635,
+      "f1": 0.31969793345296127,
+      "per_class": {
+        "Cognitive": 0.9488372093023256,
+        "Cognitive_n": 860,
+        "Affective": 0.015151515151515152,
+        "Affective_n": 132,
+        "Motivational": 0.06666666666666667,
+        "Motivational_n": 180
+      }
+    },
+    "pred_share": [
+      0.9445392491467577,
+      0.005119453924914676,
+      0.050341296928327645
+    ],
+    "n_estimators": 100,
+    "max_depth": 8
+  },
+  "rf_n100_d16": {
+    "cv": {
+      "acc": 0.6444991789819376,
+      "f1": 0.3251100948509485,
+      "per_class": {
+        "Cognitive": 0.9190184049079755,
+        "Cognitive_n": 815,
+        "Affective": 0.0,
+        "Affective_n": 143,
+        "Motivational": 0.13846153846153847,
+        "Motivational_n": 260
+      }
+    },
+    "test": {
+      "acc": 0.6962457337883959,
+      "f1": 0.3218282995630419,
+      "per_class": {
+        "Cognitive": 0.9290697674418604,
+        "Cognitive_n": 860,
+        "Affective": 0.015151515151515152,
+        "Affective_n": 132,
+        "Motivational": 0.08333333333333333,
+        "Motivational_n": 180
+      }
+    },
+    "pred_share": [
+      0.9232081911262798,
+      0.005119453924914676,
+      0.07167235494880546
+    ],
+    "n_estimators": 100,
+    "max_depth": 16
+  },
+  "rf_n300_dNone": {
+    "cv": {
+      "acc": 0.6412151067323482,
+      "f1": 0.31931702416329827,
+      "per_class": {
+        "Cognitive": 0.9177914110429448,
+        "Cognitive_n": 815,
+        "Affective": 0.0,
+        "Affective_n": 143,
+        "Motivational": 0.12692307692307692,
+        "Motivational_n": 260
+      }
+    },
+    "test": {
+      "acc": 0.6962457337883959,
+      "f1": 0.3129711253621537,
+      "per_class": {
+        "Cognitive": 0.9325581395348838,
+        "Cognitive_n": 860,
+        "Affective": 0.007575757575757576,
+        "Affective_n": 132,
+        "Motivational": 0.07222222222222222,
+        "Motivational_n": 180
+      }
+    },
+    "pred_share": [
+      0.9300341296928327,
+      0.005972696245733789,
+      0.06399317406143344
+    ],
+    "n_estimators": 300,
+    "max_depth": null
+  },
+  "rf_n300_d8": {
+    "cv": {
+      "acc": 0.6568144499178982,
+      "f1": 0.3140924706739931,
+      "per_class": {
+        "Cognitive": 0.950920245398773,
+        "Cognitive_n": 815,
+        "Affective": 0.0,
+        "Affective_n": 143,
+        "Motivational": 0.09615384615384616,
+        "Motivational_n": 260
+      }
+    },
+    "test": {
+      "acc": 0.7073378839590444,
+      "f1": 0.3047320328795425,
+      "per_class": {
+        "Cognitive": 0.9534883720930233,
+        "Cognitive_n": 860,
+        "Affective": 0.007575757575757576,
+        "Affective_n": 132,
+        "Motivational": 0.044444444444444446,
+        "Motivational_n": 180
+      }
+    },
+    "pred_share": [
+      0.9496587030716723,
+      0.004266211604095563,
+      0.04607508532423208
+    ],
+    "n_estimators": 300,
+    "max_depth": 8
+  },
+  "rf_n300_d16": {
+    "cv": {
+      "acc": 0.6428571428571429,
+      "f1": 0.3157940210817349,
+      "per_class": {
+        "Cognitive": 0.9239263803680982,
+        "Cognitive_n": 815,
+        "Affective": 0.0,
+        "Affective_n": 143,
+        "Motivational": 0.11538461538461539,
+        "Motivational_n": 260
+      }
+    },
+    "test": {
+      "acc": 0.7030716723549488,
+      "f1": 0.3130216267888115,
+      "per_class": {
+        "Cognitive": 0.9430232558139535,
+        "Cognitive_n": 860,
+        "Affective": 0.007575757575757576,
+        "Affective_n": 132,
+        "Motivational": 0.06666666666666667,
+        "Motivational_n": 180
+      }
+    },
+    "pred_share": [
+      0.9377133105802048,
+      0.0034129692832764505,
+      0.05887372013651877
+    ],
+    "n_estimators": 300,
+    "max_depth": 16
+  }
+}

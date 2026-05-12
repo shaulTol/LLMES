@@ -17,7 +17,12 @@ def train_model(max_epochs=50, patience=5, batch_size=32, learning_rate=1e-3,
     Returns:
         best_eval_loss: Best evaluation loss achieved
     """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    elif torch.backends.mps.is_available():
+        device = torch.device('mps')
+    else:
+        device = torch.device('cpu')
     
     # Data
     train_loader, eval_loader, _ = get_dataloaders(batch_size=batch_size)

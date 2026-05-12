@@ -1,0 +1,95 @@
+{
+  "rf | original     (1218)": {
+    "cv": {
+      "acc": 0.6412151067323482,
+      "f1": 0.31931702416329827,
+      "per_class": {
+        "Cognitive": 0.9177914110429448,
+        "Cognitive_n": 815,
+        "Affective": 0.0,
+        "Affective_n": 143,
+        "Motivational": 0.12692307692307692,
+        "Motivational_n": 260
+      }
+    },
+    "test": {
+      "acc": 0.6962457337883959,
+      "f1": 0.3129711253621537,
+      "per_class": {
+        "Cognitive": 0.9325581395348838,
+        "Cognitive_n": 860,
+        "Affective": 0.007575757575757576,
+        "Affective_n": 132,
+        "Motivational": 0.07222222222222222,
+        "Motivational_n": 180
+      }
+    },
+    "pred_share": [
+      0.9300341296928327,
+      0.005972696245733789,
+      0.06399317406143344
+    ]
+  },
+  "rf | downsampled  (429)": {
+    "cv": {
+      "acc": 0.37995337995337997,
+      "f1": 0.36011994541406306,
+      "per_class": {
+        "Cognitive": 0.32167832167832167,
+        "Cognitive_n": 143,
+        "Affective": 0.1958041958041958,
+        "Affective_n": 143,
+        "Motivational": 0.6223776223776224,
+        "Motivational_n": 143
+      }
+    },
+    "test": {
+      "acc": 0.3890784982935154,
+      "f1": 0.2989894342194956,
+      "per_class": {
+        "Cognitive": 0.38372093023255816,
+        "Cognitive_n": 860,
+        "Affective": 0.09848484848484848,
+        "Affective_n": 132,
+        "Motivational": 0.6277777777777778,
+        "Motivational_n": 180
+      }
+    },
+    "pred_share": [
+      0.378839590443686,
+      0.09215017064846416,
+      0.5290102389078498
+    ]
+  },
+  "rf | text-augmented (2445)": {
+    "cv": {
+      "acc": 0.6658486707566462,
+      "f1": 0.6548317619282581,
+      "per_class": {
+        "Cognitive": 0.8957055214723927,
+        "Cognitive_n": 815,
+        "Affective": 0.43803680981595094,
+        "Affective_n": 815,
+        "Motivational": 0.6638036809815951,
+        "Motivational_n": 815
+      }
+    },
+    "test": {
+      "acc": 0.689419795221843,
+      "f1": 0.31704576673761053,
+      "per_class": {
+        "Cognitive": 0.9197674418604651,
+        "Cognitive_n": 860,
+        "Affective": 0.007575757575757576,
+        "Affective_n": 132,
+        "Motivational": 0.08888888888888889,
+        "Motivational_n": 180
+      }
+    },
+    "pred_share": [
+      0.9163822525597269,
+      0.007679180887372013,
+      0.07593856655290103
+    ]
+  }
+}

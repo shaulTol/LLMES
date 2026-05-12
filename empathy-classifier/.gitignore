@@ -4,4 +4,14 @@ __pycache__/
 .ipynb_checkpoints/
 *.pt
 data/raw/*
+data/processed/*
+docs/meeting_*
+# Run logs are noisy; the .md/.json/.png summaries kept as evidence are enough
+outputs/*.log
+# OS / editor noise
+.DS_Store
+*.swp
+*.swo
+*.tmp
+*.bak
 
