@@ -1,0 +1,62 @@
+{
+  "args": {
+    "rank": 4,
+    "target": "qkv",
+    "layer_scope": "top6",
+    "alpha": -1,
+    "bias": "none",
+    "head_dropout": 0.5,
+    "lora_dropout": 0.0,
+    "lr": 0.0003,
+    "lora_lr": 3e-05,
+    "wd": 0.01,
+    "skip_conn": true,
+    "opener_swap_p": 0.3,
+    "opener_swap_n_words": 10,
+    "opener_bank": "same_class",
+    "max_epochs": 60,
+    "patience": 10,
+    "batch_size": 16,
+    "seeds": 5,
+    "seed_offset": 0,
+    "tag": "p28_rob_r4_qkv_top6"
+  },
+  "base_model": "roberta-base",
+  "acc_mean": 0.5639931740614335,
+  "acc_std": 0.08569204000805579,
+  "f1_mean": 0.3301643246490179,
+  "f1_std": 0.021097270546790742,
+  "ep_mean": 21.8,
+  "seed_results": [
+    {
+      "acc": 0.4761092150170648,
+      "f1": 0.3197175580278245,
+      "epochs": 23,
+      "seed": 0
+    },
+    {
+      "acc": 0.5477815699658704,
+      "f1": 0.35432702875062616,
+      "epochs": 27,
+      "seed": 1
+    },
+    {
+      "acc": 0.5656996587030717,
+      "f1": 0.3512768933983242,
+      "epochs": 22,
+      "seed": 2
+    },
+    {
+      "acc": 0.5068259385665529,
+      "f1": 0.3282460377510769,
+      "epochs": 17,
+      "seed": 3
+    },
+    {
+      "acc": 0.7235494880546075,
+      "f1": 0.2972541053172379,
+      "epochs": 20,
+      "seed": 4
+    }
+  ]
+}

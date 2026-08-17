@@ -1,6 +1,14 @@
 # Markdown plan files
 plan_empathy_text_eda_notebook.md
 
+# Claude Code session config (local, not part of the project)
+.claude/
+
+# Build artifacts: PDFs and the figures generated into them.
+# Regenerate with: python docs/final_paper.py
+*.pdf
+empathy-classifier/docs/_paper_figs/
+
 # Python
 __pycache__/
 *.py[cod]

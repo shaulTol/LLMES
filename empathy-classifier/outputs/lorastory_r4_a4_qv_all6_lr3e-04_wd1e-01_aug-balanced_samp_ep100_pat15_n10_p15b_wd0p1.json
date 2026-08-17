@@ -1,0 +1,105 @@
+{
+  "args": {
+    "rank": 4,
+    "target": "qv",
+    "layer_scope": "all6",
+    "alpha": -1,
+    "bias": "none",
+    "head_dropout": 0.3,
+    "lora_dropout": 0.0,
+    "lr": 0.0003,
+    "lora_lr": 3e-05,
+    "wd": 0.1,
+    "l1": 0.0,
+    "early_stop_metric": "loss",
+    "log_curve": false,
+    "skip_conn": false,
+    "mixup_alpha": 0.0,
+    "latent_sigma": 0.0,
+    "aug_mode": "balanced_samp",
+    "aug_target": 0,
+    "max_epochs": 100,
+    "patience": 15,
+    "batch_size": 32,
+    "seeds": 10,
+    "seed_offset": 0,
+    "tag": "p15b_wd0p1"
+  },
+  "acc_mean": 0.5885665529010239,
+  "acc_std": 0.028729823216020432,
+  "f1_mean": 0.37164195139423434,
+  "f1_std": 0.01446123163421955,
+  "ep_mean": 24.4,
+  "seed_results": [
+    {
+      "acc": 0.5964163822525598,
+      "f1": 0.36899685290535644,
+      "epochs": 29,
+      "per_epoch": [],
+      "seed": 0
+    },
+    {
+      "acc": 0.606655290102389,
+      "f1": 0.3769425434684681,
+      "epochs": 21,
+      "per_epoch": [],
+      "seed": 1
+    },
+    {
+      "acc": 0.5460750853242321,
+      "f1": 0.34750822677179266,
+      "epochs": 19,
+      "per_epoch": [],
+      "seed": 2
+    },
+    {
+      "acc": 0.5776450511945392,
+      "f1": 0.3501320612662992,
+      "epochs": 27,
+      "per_epoch": [],
+      "seed": 3
+    },
+    {
+      "acc": 0.590443686006826,
+      "f1": 0.4014551488187011,
+      "epochs": 25,
+      "per_epoch": [],
+      "seed": 4
+    },
+    {
+      "acc": 0.6322525597269625,
+      "f1": 0.36987714884263195,
+      "epochs": 18,
+      "per_epoch": [],
+      "seed": 5
+    },
+    {
+      "acc": 0.5639931740614335,
+      "f1": 0.3775025110730957,
+      "epochs": 34,
+      "per_epoch": [],
+      "seed": 6
+    },
+    {
+      "acc": 0.636518771331058,
+      "f1": 0.3704135567722477,
+      "epochs": 22,
+      "per_epoch": [],
+      "seed": 7
+    },
+    {
+      "acc": 0.5563139931740614,
+      "f1": 0.37291320365770986,
+      "epochs": 23,
+      "per_epoch": [],
+      "seed": 8
+    },
+    {
+      "acc": 0.5793515358361775,
+      "f1": 0.38067826036604097,
+      "epochs": 26,
+      "per_epoch": [],
+      "seed": 9
+    }
+  ]
+}

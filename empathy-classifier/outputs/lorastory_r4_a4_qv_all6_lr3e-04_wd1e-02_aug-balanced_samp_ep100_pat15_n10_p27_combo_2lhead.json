@@ -1,0 +1,118 @@
+{
+  "args": {
+    "rank": 4,
+    "target": "qv",
+    "layer_scope": "all6",
+    "alpha": -1,
+    "bias": "none",
+    "head_dropout": 0.5,
+    "lora_dropout": 0.0,
+    "lr": 0.0003,
+    "lora_lr": 3e-05,
+    "wd": 0.01,
+    "l1": 0.0,
+    "early_stop_metric": "loss",
+    "log_curve": false,
+    "skip_conn": true,
+    "save_predictions": false,
+    "mixup_alpha": 0.0,
+    "latent_sigma": 0.0,
+    "aug_mode": "balanced_samp",
+    "aug_target": 0,
+    "max_epochs": 100,
+    "patience": 15,
+    "batch_size": 32,
+    "seeds": 10,
+    "seed_offset": 0,
+    "pool": "cls",
+    "opener_swap_p": 0.3,
+    "opener_swap_n_words": 10,
+    "opener_bank": "same_class",
+    "opener_strip_n": 0,
+    "loss": "soft_ce",
+    "focal_gamma": 2.0,
+    "label_smoothing": 0.1,
+    "mlp_hidden": 256,
+    "mlp_hidden2": 128,
+    "lr_schedule": "flat",
+    "warmup_epochs": 0,
+    "tag": "p27_combo_2lhead"
+  },
+  "acc_mean": 0.576962457337884,
+  "acc_std": 0.07285390457391193,
+  "f1_mean": 0.348861106395135,
+  "f1_std": 0.01369883788164774,
+  "ep_mean": 36.7,
+  "seed_results": [
+    {
+      "acc": 0.6083617747440273,
+      "f1": 0.3499096078001043,
+      "epochs": 27,
+      "per_epoch": [],
+      "seed": 0
+    },
+    {
+      "acc": 0.4453924914675768,
+      "f1": 0.3326880462049423,
+      "epochs": 54,
+      "per_epoch": [],
+      "seed": 1
+    },
+    {
+      "acc": 0.5836177474402731,
+      "f1": 0.3519155436932422,
+      "epochs": 40,
+      "per_epoch": [],
+      "seed": 2
+    },
+    {
+      "acc": 0.5418088737201365,
+      "f1": 0.3436979237899136,
+      "epochs": 36,
+      "per_epoch": [],
+      "seed": 3
+    },
+    {
+      "acc": 0.48976109215017066,
+      "f1": 0.3580548905136994,
+      "epochs": 40,
+      "per_epoch": [],
+      "seed": 4
+    },
+    {
+      "acc": 0.5554607508532423,
+      "f1": 0.36002326872799423,
+      "epochs": 37,
+      "per_epoch": [],
+      "seed": 5
+    },
+    {
+      "acc": 0.6800341296928327,
+      "f1": 0.35240334565647685,
+      "epochs": 21,
+      "per_epoch": [],
+      "seed": 6
+    },
+    {
+      "acc": 0.5452218430034129,
+      "f1": 0.3762407792279066,
+      "epochs": 52,
+      "per_epoch": [],
+      "seed": 7
+    },
+    {
+      "acc": 0.6629692832764505,
+      "f1": 0.3281580005658002,
+      "epochs": 38,
+      "per_epoch": [],
+      "seed": 8
+    },
+    {
+      "acc": 0.6569965870307167,
+      "f1": 0.3355196577712705,
+      "epochs": 22,
+      "per_epoch": [],
+      "seed": 9
+    }
+  ]
+}
