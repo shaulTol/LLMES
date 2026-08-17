@@ -1,0 +1,20 @@
+{
+ "response_only_768": {
+  "f1_mean": 0.3499867949562527,
+  "f1_std": 0.022448637533688566,
+  "n_seeds": 100,
+  "head": "linear",
+  "lr": 0.001,
+  "max_epochs": 50,
+  "patience": 5
+ },
+ "story_plus_response_1536": {
+  "f1_mean": 0.34634675229121187,
+  "f1_std": 0.019618198016602233,
+  "n_seeds": 100,
+  "head": "linear",
+  "lr": 0.001,
+  "max_epochs": 50,
+  "patience": 5
+ }
+}

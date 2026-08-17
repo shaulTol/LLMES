@@ -1,0 +1,16 @@
+{
+ "linear_response_only": {
+  "seed": 9,
+  "f1": 0.33637837881119353,
+  "acc": 0.6843003412969283,
+  "head": "linear",
+  "lr": 0.001
+ },
+ "linear_story_response": {
+  "seed": 9,
+  "f1": 0.3329228705231107,
+  "acc": 0.5418088737201365,
+  "head": "linear",
+  "lr": 0.001
+ }
+}

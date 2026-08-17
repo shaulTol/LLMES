@@ -5,9 +5,16 @@ plan_empathy_text_eda_notebook.md
 .claude/
 
 # Build artifacts. The report PDF and its figures are generated, not source:
-#   cd empathy-classifier && python docs/final_paper.py
+#   cd empathy-classifier && python docs/make_figures.py && pdflatex -output-directory=docs docs/final_paper.tex
 *.pdf
 empathy-classifier/docs/_paper_figs/
+
+# LaTeX intermediates
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
 
 # Python
 __pycache__/

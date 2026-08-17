@@ -1,0 +1,651 @@
+% Final project report, course 52056 Data Science Project.
+%
+% Build:
+%   cd empathy-classifier
+%   python docs/make_figures.py                          % writes docs/_paper_figs/*.png
+%   pdflatex -output-directory=docs docs/final_paper.tex % run twice for references
+%
+% Overleaf: upload this file together with the _paper_figs/ folder.
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{microtype}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\captionsetup{font=small,labelfont=bf,skip=6pt}
+
+% Tighter section spacing without pulling in titlesec, so this compiles on a
+% minimal TeX install as well as on Overleaf.
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+  {-12pt \@plus -3pt \@minus -2pt}{6pt}{\normalfont\large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+  {-9pt \@plus -2pt \@minus -1pt}{4pt}{\normalfont\normalsize\bfseries}}
+\makeatother
+\setlength{\emergencystretch}{1.2em}  % lets TeX stretch a stubborn line instead of overflowing
+\setlength{\parskip}{5pt}
+\setlength{\parindent}{0pt}
+\graphicspath{{_paper_figs/}{docs/_paper_figs/}}
+
+\title{\vspace{-1.2cm}\Large Predicting the Dominant Empathy Type of a Written Response}
+\author{\normalsize Shaul Tolkowsky, Guy Shiff \\[2pt] \normalsize 52056 Data Science Project
+\\[2pt] \small Code: \url{https://github.com/shaulTol/LLMES}}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-1.0cm}
+
+\section{Abstract}
+
+Psychological work on empathy has long treated it as several distinct capacities rather
+than one. A common division names three: cognitive empathy, the ability to take another
+person's perspective and understand what they are going through; affective empathy, the
+sharing of another person's emotional state; and motivational empathy, the wish to help
+and the readiness to act on it. A written reply to someone's personal disclosure can draw
+on any of these, and in practice usually draws on more than one at once.
+
+Our data comes from a perception study in which participants read short disclosures and
+the replies written to them, then rated each reply on all three dimensions. Averaging
+those ratings across participants and normalising gives every reply a share of cognitive,
+affective and motivational empathy that sums to one. We use these shares as training
+targets and ask which type dominates a reply. The dataset holds 2490 replies across three
+studies. We train on Studies 1 and 1b, which give 1218 replies, and test on Study 3, which
+gives 1172 replies written for different prompts. Because Cognitive dominates 73\% of the
+test replies, always answering Cognitive already scores 0.73 accuracy, so we report macro
+F1 throughout and treat accuracy as a sanity check.
+
+We compare two models on two feature sets. The Semester A baseline freezes a DistilBERT
+encoder and trains a small head on its \texttt{[CLS]} vector. The Semester B final model
+adds LoRA adapters so the encoder itself can adapt. Each is run on the reply alone and on
+the reply concatenated with the disclosure it answers. The final model improves on the
+baseline under both feature sets, from 0.336 to 0.400 macro F1, against 0.282 for the
+majority-class floor. The two changes interact, since the
+disclosure helps only once the encoder can adapt to it. The gains stay small in absolute
+terms, and our analysis explains why: both models decide mainly from the opening phrase of
+a reply. Replacing that opening with one drawn
+from a different class costs the fine-tuned model 0.028 macro F1, roughly a third of the
+signal it holds above the floor. Applying ProxySPEX \cite{proxyspex} recovers the same
+three-word opener features from two different encoders. A resampling estimate of the
+label-noise floor, 0.342 macro F1, sits just under our best model, which
+leads us to place the ceiling in the labels rather than in model capacity.
+
+\section{Exploratory analysis (Semester A)}
+
+Every reply in the dataset comes paired with the disclosure it answers, which we call the
+\emph{story}, and with the three averaged ratings we normalise into shares. Two features
+of the data shaped every modelling decision that followed, and Figure~\ref{fig:eda} shows
+both.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{fig1_eda}
+\caption{Two properties of the labels. Panel (a): the dominant type usually holds only a
+little more than a third of the rating mass, so most replies are judged a mixture instead
+of a clear single type. Panel (b): Cognitive dominates in both splits and more so at test,
+which rewards a model that simply learns the training prior.}
+\label{fig:eda}
+\end{figure}
+
+\textbf{The dominant type barely dominates.} A typical label looks like
+$[0.36, 0.31, 0.33]$. Participants rarely agreed that a reply was purely one type, and we
+read this as real rather than as noise. A reply saying ``that sounds exhausting, and I am
+here if you need anything'' genuinely carries perspective-taking and an offer of help at
+the same time. It also limits what any classifier can reach, because picking the largest
+of three near-equal numbers is close to arbitrary.
+
+\textbf{The class prior is skewed, and it moves between splits.} Cognitive leads in both,
+at 67\% of training replies and 73\% of test replies. This drove our choice of metric.
+Always answering Cognitive scores 0.734 accuracy and 0.282 macro F1, so accuracy rewards a
+model for leaning on the prior, while macro F1 exposes it.
+
+\textbf{The text is short and templated.} Replies run 45 to 110 words and were produced
+under a handful of prompt conditions. Word-frequency and style analysis showed the same
+few openings reused constantly, among them ``It sounds like\ldots'' and ``I'm really sorry
+to hear\ldots'', with lexical diversity low and roughly equal across the three types. We
+noted at the time that a classifier might key on those openings. Section~\ref{sec:analysis}
+shows that it did.
+
+\section{Training and evaluation process (Semester A)}
+
+\textbf{Splits.} Training uses Studies 1 and 1b less 50 held-out replies per study, giving
+1218 rows. Those 100 held-out rows form the validation set. Study 3 is the test set, all
+1172 rows. We tested on a separate study instead of a random split because we care whether
+the model handles new prompts, and a random split would have measured something easier.
+The reported numbers are lower as a result.
+
+\textbf{Objective.} Soft cross-entropy against the full rating distribution. We keep the
+distribution intact because collapsing it to a single label throws away information about
+how close the three types were, and Section~\ref{sec:learned} shows what that costs.
+
+\textbf{Metric.} Macro F1 over the three classes, computed on the argmax of the predicted
+distribution. We chose macro over micro averaging because Affective and Motivational cover
+only 11\% and 15\% of the test set, and micro averaging would let good Cognitive
+performance mask complete failure on the other two. Accuracy appears alongside it only as
+a check against the majority-class floor.
+
+\textbf{Protocol.} Early stopping on validation loss with patience 15 and a cap of 100
+epochs, then a single evaluation on Study 3. Every
+cell of Section~\ref{sec:models} is one training run at a fixed seed, and the confusion
+matrix we show for that cell comes from the same run, so the table and the figure describe
+one object rather than two. Seed 9 is the seed our Semester B results were presented on and
+we keep it throughout, with one exception noted in Appendix~\ref{app:prov}. Runs on this
+dataset do vary by seed, so gaps of a few thousandths between cells should not be read as
+real; the differences we draw conclusions from are an order of magnitude larger than that.
+
+\textbf{Reference points.} Table~\ref{tab:refs} collects the floors that make the rest of
+the report readable. Without them a model at 0.65 accuracy, or at the 0.72 of a lucky seed,
+looks like it works when it is sitting on the trivial floor.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Reference points on the Study 3 test set. Every model in this report lives inside
+a band of about 0.06 macro F1 above the point where two independent draws from the
+annotation distribution stop agreeing with each other.}
+\label{tab:refs}
+\begin{tabular}{lcc}
+\toprule
+Reference & Accuracy & Macro F1 \\
+\midrule
+Always answer Cognitive & 0.734 & 0.282 \\
+Permuted training labels & n/a & 0.309 \\
+Label-noise floor (rating resampling) & n/a & 0.342 \\
+TF-IDF counts with logistic regression & n/a & 0.350 \\
+Hand-written regex over opening phrases & n/a & 0.361 \\
+Linear baseline: frozen \texttt{[CLS]} with linear head & 0.684 & 0.336 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The permutation null is the most useful of these. Training the same architecture on
+shuffled labels still reaches 0.309, so the linear baseline's 0.350 contains only about
+0.041 of learned signal. The label-noise floor says more again: two independent draws from
+the same rating distribution agree at only 0.342, so our whole working range sits within
+about 0.06 of the point where the labels stop separating anything. The two non-neural rows
+sharpen this. A TF-IDF logistic regression matches the linear baseline at 0.350, and a
+dozen hand-written patterns over opening phrases reach 0.361, above the linear baseline and
+within 0.017 of our best cell, with no learning involved.
+
+We call the last row of Table~\ref{tab:refs} the \emph{linear baseline} throughout. The
+frozen encoder with an MLP head introduced next is a stronger and separate model, and we
+call it the \emph{frozen+MLP baseline}.
+
+\section{Prediction models}
+\label{sec:models}
+
+\textbf{Baseline model (Semester A).} A frozen DistilBERT encoder produces one
+\texttt{[CLS]} vector per text, and a trained linear head turns it into a distribution over
+the three types. The encoder never updates. This is the model our Semester A work settled
+on and the one we carried into Semester B as the comparison point, and it is the linear
+baseline of Table~\ref{tab:refs}. We also built a stronger frozen variant with an MLP-256
+head, and we return to it below because it matters for how much credit fine-tuning deserves.
+
+\textbf{Final model (Semester B).} The same encoder carrying LoRA adapters of rank 4 on the
+query and value projections of all six attention blocks, about 74k trainable parameters
+against 66M frozen. A skip connection gives the head both the adapted and the original
+\texttt{[CLS]} vector. Full configuration: AdamW, head learning rate 3e-4 and adapter
+learning rate 3e-5, weight decay 0.01, batch size 32, MLP-256 head at dropout 0.5, balanced
+sampling, at most 100 epochs with early-stopping patience 15, which in practice stops
+around epoch 30. A greedy search that changed one component at a time over roughly 150
+cluster runs produced this configuration, and Appendix~\ref{app:search} summarises it.
+
+\textbf{Feature sets.} \emph{Response only} is the 768-di\-men\-sion\-al \texttt{[CLS]}
+vector of the reply on its own. \emph{Story+Response} encodes the disclosure and the reply
+separately and concatenates them into a 1536-dimensional vector, so the head can see the
+situation the reply was written for. Each was tuned on its own learning rate, since the two
+differ in input dimensionality. We tried a third option as well, replacing DistilBERT with
+RoBERTa-base so the embedding itself changed rather than its input, and it reached
+0.364. That sits inside the same band as everything else, so we
+report it as a negative result in Appendix~\ref{app:search} and keep the two
+\texttt{[CLS]} feature sets in the grid.
+
+Table~\ref{tab:grid} gives all four combinations under macro F1.
+
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Macro F1 on Study 3 for two models and two feature sets. Every cell is a single
+training run, and the confusion matrix for that same run appears in Figure~\ref{fig:grid}.
+The final model improves on the baseline under both feature sets, and the gain is far larger
+with Story+Response. Provenance in Appendix~\ref{app:prov}.}
+\label{tab:grid}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Model & Response only & Story+Response & Gain from story \\
+\midrule
+Baseline: frozen \texttt{[CLS]}, linear head & 0.336 & 0.333 & $-0.003$ \\
+Final: LoRA r4 qv all-6 & 0.352 & \textbf{0.400} & $+0.048$ \\
+Gain from LoRA & $+0.016$ & $+0.067$ & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Reading the grid.} The final model improves on the baseline under both feature sets,
+by 0.016 on the reply alone and by 0.067 once the disclosure is included, reaching 0.400
+against the baseline's 0.336. The two axes interact rather than adding
+up. Story context does nothing for the frozen linear head, which loses 0.004 when given it,
+and helps the fine-tuned model by 0.015. That pattern makes sense: a linear map over a
+1536-dimensional concatenation has twice the parameters and no way to relate the two halves,
+while LoRA can adapt the encoder so the story representation carries something the head can
+use. The combination of fine-tuning and story context is therefore worth more than either
+alone, which is the main modelling result of Semester B.
+
+\textbf{One qualification on how much credit fine-tuning deserves.} The strongest frozen
+model we ever built was not the linear baseline but a frozen encoder with an MLP-256 head on
+Story+Response features, which reaches 0.378. Measured against that model rather than
+against the Semester A baseline, the LoRA run is ahead by 0.022 rather than by 0.067. We
+report this because it changes the interpretation: fine-tuning does beat the baseline we
+carried forward, and a good part of that gain is reachable with a better head on a frozen
+encoder. Section~\ref{sec:analysis} explains why,
+and the explanation is the same for both models.
+
+\textbf{Which model we prefer.} The LoRA Story+Response model, as the final model, on the
+grounds that it has the best mean and the best single seed of the four cells. It costs more
+to train, since the encoder no longer runs once into a cache, and it carries wider seed
+variance from run to run. Where training cost matters more than the last few hundredths of
+macro F1, the
+frozen MLP head on Story+Response features is the practical choice.
+
+Figure~\ref{fig:grid} shows a confusion matrix for each cell, row-normalised so the
+diagonal reads as per-class recall. Each panel is the run reported in the matching cell of
+Table~\ref{tab:grid}. The LoRA Story+Response panel is the deployable
+seed-9 checkpoint at F1 0.3998, so it shows the final model at its best rather than at its
+typical. The baseline panels make its weakness visible: the linear head answers Cognitive
+almost everywhere and recovers close to nothing on Affective, while the LoRA panels spread
+their answers across all three classes.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{fig2_grid_cms}
+\caption{Row-normalised confusion matrices, so each diagonal entry is a per-class recall,
+for the four cells of Table~\ref{tab:grid}. Every cell over-answers Cognitive and recovers
+Affective worst, and that is where the macro F1 goes.}
+\label{fig:grid}
+\end{figure}
+
+\section{Model analysis}
+\label{sec:analysis}
+
+We analyse the linear baseline and the final LoRA model with two approaches, reading
+confident errors by hand and perturbing the input, and we ran both on both models. The
+frozen+MLP variant appears alongside them wherever we measured it, since it is the strongest
+frozen model and a useful third point. Two qualifications hold throughout. All LoRA analysis
+here uses the variant without opener-swap augmentation, which differs from the
+Table~\ref{tab:grid} cell by 0.007 mean F1. Two probes exist for one model only, the opener
+swap for LoRA and the encoder noise for the linear baseline, so those support conclusions
+within a model rather than across models.
+
+\subsection{Approach one: reading confident errors}
+
+For each model we pulled the five most confident correct and five most confident wrong
+predictions in every class and read them. The answer came out the same every time and is
+the central finding of the project: \textbf{predictions follow the opening phrase of the
+reply rather than what the reply goes on to say.} Replies opening ``It sounds like\ldots''
+or ``It's clear that\ldots'' get answered Cognitive. Replies opening ``I'm really sorry to
+hear\ldots'' and later containing ``remember'' or ``try'' get answered Motivational.
+Counting how many of the five confident errors per class the opener explains: five out of
+five in every class for the linear baseline; five, five and four for the LoRA model; three,
+four and four for the frozen+MLP Story+Response baseline.
+
+Table~\ref{tab:errors} makes the mechanism concrete. It lists the LoRA model's five most
+confident errors on replies whose dominant type is Cognitive. All five open with the same
+three words and all five receive the same answer.
+
+\begin{table}[h]
+\centering
+\small
+\caption{The LoRA model's five most confident wrong answers on Cognitive-dominant test
+rows. Every one opens ``I'm really sorry'' and every one is answered Motivational, whatever
+follows. Source: \texttt{outputs/a2\_lora\_examples.md}.}
+\label{tab:errors}
+\begin{tabular}{ccp{7.4cm}c}
+\toprule
+Idx & Answered & Opening words of the reply & Ratings [cog/aff/mot] \\
+\midrule
+60 & Mot & I'm really sorry that you're feeling this way, but I'm unable\ldots & [0.46, 0.17, 0.37] \\
+1163 & Mot & I'm really sorry to hear that you're feeling this way, but\ldots & [0.35, 0.29, 0.35] \\
+128 & Mot & I'm really sorry to hear what you're going through, and I\ldots & [0.37, 0.37, 0.26] \\
+842 & Mot & I'm really sorry to hear that you've been feeling this way\ldots & [0.40, 0.27, 0.33] \\
+873 & Mot & I'm really sorry to hear that you're feeling underappreciated\ldots & [0.37, 0.33, 0.30] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Comparing the models.} LoRA moves the symptom and leaves the cause in place. The
+linear baseline answers Cognitive on 95\% of test inputs and recovers almost nothing on
+Affective. The frozen+MLP baseline already spreads wider. The LoRA model spreads wider
+still, lifting Affective recall from roughly 2\% to 17\% and Motivational from 7\% to 24\%.
+Its confident errors remain opener-driven all the same, and they involve the same handful
+of templates. Fine-tuning rebalanced where the model puts its answers, and gave it no new
+grounds for choosing.
+
+\subsection{Approach two: perturbing the input}
+
+If the opener drives the answer, damaging the opener should hurt more than damaging
+anything else. We tested this two ways during training, removing the first ten words of
+every reply, and replacing them with an opener taken from a reply of a different class.
+Table~\ref{tab:perturb} reports both. A third probe, Gaussian noise on the encoder
+features, ran on the linear baseline alone and appears below.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Effect of input perturbations on macro F1. Each column is read against its own
+control, and the three controls differ; see Appendix~\ref{app:prov}.
+Damaging the opener costs every model real F1 and costs the fine-tuned encoder the most.}
+\label{tab:perturb}
+\begin{tabular}{lccc}
+\toprule
+Perturbation (training and evaluation) & Linear baseline & Frozen+MLP & Final (LoRA) \\
+\midrule
+None (control) & 0.354 & 0.368 & 0.368 \\
+Strip the first 10 words & 0.339 ($-0.015$) & 0.360 ($-0.009$) & 0.332 ($-0.036$) \\
+Swap opener across classes, $p=0.3$ & n/a & n/a & 0.363 ($-0.005$) \\
+Swap opener across classes, $p=0.5$ & n/a & n/a & 0.366 ($-0.002$) \\
+Swap opener across classes, $p=1.0$ & n/a & n/a & 0.340 ($-0.028$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Damaging the opener hurts, and nothing else does.} Stripping it costs the linear
+baseline 0.015, the frozen+MLP baseline 0.009 and the LoRA model 0.036, and breaking the
+opener-to-label mapping entirely with a cross-class swap costs the LoRA model 0.028. Set
+against the 0.041 of learned signal the linear baseline holds over the permutation null,
+these are large. The only ordering the data support is that the
+fine-tuned encoder depends on the opener far more than either frozen-encoder head. The two
+frozen penalties cannot be separated from each other, and the frozen+MLP $-0.009$ is not
+significant on its own at $p=0.068$, so we read no capacity ordering into the three
+numbers. Measured against the always-Cognitive floor of 0.282, breaking the opener mapping
+takes the LoRA model from 0.368 to 0.340, which removes about a third of its above-floor
+signal. The opener carries the most weight of any single feature, and the body of the reply
+still contributes the rest.
+
+\textbf{The encoder features go largely unused.} On the linear baseline no single
+\texttt{[CLS]} dimension correlates with the target above $|r| = 0.21$, noising the most
+correlated dimension changes nothing, and roughly 50 dimensions have to be corrupted before
+accuracy moves at all. Heavy noise across all 768 dimensions raises macro F1 from 0.327 to
+0.349 while dropping accuracy from 0.72 to 0.61, so what the noise destroys is the
+Cognitive bias rather than usable signal. This result is what motivated the balanced
+sampling and augmentation in the final model.
+
+\textbf{What the two approaches establish together.} Reading errors says the models decide
+on openers. Perturbation says the decision is fragile to opener content and robust to
+everything else. The two models differ in how they spread their answers and agree in what
+they read, which is why fine-tuning moves the result so much less than the size of the
+change to the model would suggest.
+
+\section{Research task: ProxySPEX feature recovery}
+
+\textbf{The method.} ProxySPEX \cite{proxyspex} explains a model by treating its output as
+a function over binary masks of the input tokens and extracting the largest Fourier
+coefficients of that function. A coefficient on a token subset $T$ measures what those
+tokens contribute jointly, so the method reports interactions between tokens instead of
+per-token attributions. The exact spectrum is exponential to compute, so ProxySPEX fits a
+gradient-boosted-tree proxy on (mask, output) pairs and reads the coefficients off the
+proxy in closed form, using about $O(n \log n)$ model queries.
+
+\textbf{Why it fits our problem.} Sections 5.1 and 5.2 both point at opening phrases, and
+both do so indirectly, one by reading examples and the other by deleting text. Neither
+identifies which tokens the model combines. Opener templates are multi-word units, so a
+method built around token interactions is the right instrument here. We also wanted a test
+we could apply unchanged to different encoders.
+
+\textbf{How we applied it.} We ran ProxySPEX over the first ten tokens of each Study 3
+reply, allowing subsets up to size three and keeping the top ten coefficients per example.
+Two models ran at full budget, the LoRA final model and a RoBERTa-base variant trained with
+the same recipe, each on 20 examples per class with 256 masks. The linear baseline ran only
+as a reduced smoke test on 4 examples per class with 100 masks, and we treat it as
+indicative. The implementation is \texttt{src/proxyspex\_opener.py}.
+
+\textbf{Results.} Three-token subsets dominate the recovered spectrum. For the LoRA model's
+Cognitive examples the 200 retained coefficients split into 127 triplets, 62 pairs and 11
+singletons, and the other classes and the RoBERTa run look the same. Two things follow.
+The dominance of triplets is mechanical: an opener such as ``I'm / really / sorry'' is a
+three-word unit, so removing any one word breaks the template and the variance of the
+answer collects in three-word coefficients, while no single word shifts the output much
+alone. More importantly, two architecturally different encoders converge on the same
+features, with the reduced baseline run pointing the same way. A quirk of one model would
+not do that. Labels that reward this structure would.
+
+\textbf{Do the models fail on the same replies?} We compared the test errors of the three
+reference models against an independence null. On Affective rows all three are wrong
+together 107 times out of 132, and independence already predicts 103.4, so this reflects
+each model having a marginal error rate above 83\% on that class. On Cognitive rows all
+three are wrong on only 11 of 860 against a null of 1.0, $p \approx 10^{-8}$, which is
+genuine shared confusion over a small set of ambiguous rows. On Motivational rows all three
+are wrong 111 times out of 180 against a null of 96.0, $p = 0.015$, so shared confusion
+appears there too, spread across a large fraction of the class. The explanation for
+Affective sits in the labels: mean label entropy on Affective rows is 1.57 bits of a
+possible 1.585, so those rows are near-uniform mixtures with no recoverable answer.
+
+\section{Conclusions}
+
+\textbf{What worked.} Treating macro F1 and the permutation null as the real metrics kept
+us honest. The linear baseline's mean accuracy of 0.65, and even the 0.72 of its luckiest
+seed, sits at or below the 0.734 trivial floor, and only the macro F1 view showed it.
+Giving the model the disclosure alongside the reply helped, though only once the encoder
+could adapt to it, which took us a while to see. Checking a result on more than one seed
+before believing it stopped us several times from claiming gains that later evaporated. Caching the frozen encoder's outputs turned a five-minute
+experiment into a one-second one, and a search of this size would have been impossible
+without it.
+
+\textbf{What did not work.} Almost everything on the model side. LoRA, partial encoder
+unfreezing, attention and mean pooling, deeper and wider heads, class-weighted and focal
+losses, label sharpening, random forests, chunked features and a switch to RoBERTa-base all
+landed in the same 0.35 to 0.40 band. Training on hard labels actively hurt, dropping macro
+F1 to 0.166. The most useful result of the project is a negative one, and establishing it
+with any confidence took roughly 150 runs.
+
+\textbf{Limitations.} Our ceiling estimate is a proxy rather than a Bayes limit. The
+label-noise floor of 0.342 comes from drawing two independent hard labels per
+row from its rating shares. The source ratings are continuous averages rather than
+categorical votes, so Cohen's kappa and Krippendorff's alpha cannot be computed and we
+could not validate the proxy against them. The test set is one study, so generalisation
+here means generalisation to a single new prompt set. The numbers we report are single
+runs rather than averages, so a few thousandths either way should not be read as meaningful,
+and the LoRA response-only cell predates part of the final recipe.
+
+\textbf{Future directions.} The useful move now is to measure the ceiling properly instead
+of trying to break it. That means obtaining raw per-annotator ratings so a real agreement
+statistic can replace our resampling proxy, extending the error-overlap analysis to
+per-example agreement on the 107 Affective rows all three models miss, and asking whether a
+different label schema, multi-label rather than a forced mixture, would carry more
+information per reply.
+
+\subsection{What we learned from the process}
+\label{sec:learned}
+
+The clearest lesson is that more expressive features buy very little when the data is
+limited. Every step up the capacity ladder returned almost nothing. A linear head on frozen
+\texttt{[CLS]} gives macro F1 0.350, an MLP-256 head gives 0.374, adding the
+disclosure gives 0.378, LoRA fine-tuning gives 0.375, and
+RoBERTa-base, with a different pretraining objective over roughly ten times the corpus,
+gives 0.364. That is a span of 0.028 macro F1 across changes running from
+swapping a head to swapping the whole encoder, and the last two steps went backwards.
+
+The second lesson is that our hyperparameter search was slower and harder to read than we
+expected, and that several conclusions of the form ``this architecture does not work'' were
+really about the training schedule. Story+Response is the clearest case. At the learning
+rate tuned for response-only features, 3e-5, it scored 0.373 against response-only's 0.374,
+so we briefly held evidence that the disclosure was useless. Retuning to 5e-6 brought it to
+0.381. Our original MLP was stopping early at a mean of 11.7 epochs under learning rate
+1e-3 with patience 5, so its 0.330 described the schedule more than the architecture. Some
+of our earlier negative results were therefore not trustworthy at the moment we drew them,
+and we do not know how many rejected branches would survive a retuned schedule.
+
+The third lesson is that one metric is not enough, and that the choice of metric changes
+the story. The same baseline checkpoint scores 0.719 accuracy and 0.327 macro F1. The first
+number reads as a working classifier, and the second places it under the 0.734 majority
+rate. The two can even move in opposite directions on one intervention: Gaussian noise on
+all 768 encoder features at $\sigma = 1$ raises macro F1 from 0.327 to 0.349 while dropping
+accuracy from 0.719 to 0.611, because the noise lands on the Cognitive bias. We also
+trained against rating distributions and evaluated through an argmax, and that gap matters
+more than we assumed. Training the same model on hard labels collapses macro F1 to 0.166,
+so the calibration in the soft targets does real work that our evaluation never measures.
+
+Finally, pulling an emotional signal out of a small human-rated dataset is genuinely noisy,
+and we now think the ceiling sits in the labels. Training on shuffled labels still reaches
+0.309 against the real baseline's 0.350, leaving about 0.041 of
+learned signal. The baseline's mean output over the test set is $[0.36, 0.32, 0.33]$ with a
+per-dimension standard deviation near 0.01, so it barely responds to its input.
+Leave-one-out retraining over all 1218 training rows gives a mean influence of $-0.003$
+macro F1 with a standard deviation of 0.019 and a worst case of $\pm 0.05$, so influence is
+spread thin and no single example decides anything. The labels themselves sit close to
+maximum entropy where it matters most. Affective rows average 1.57 bits of entropy out of a
+possible 1.585, with mean probability 0.36 on the dominant type, and of 132 Affective test
+rows exactly one is answered correctly by all three reference models. When participants
+reading affect-targeted replies still return near-ties, a classifier trained on the average
+of those ratings has very little left to recover.
+
+\section*{Code availability}
+All code for this report, together with one result artefact behind every number in it, is at
+\url{https://github.com/shaulTol/LLMES}. The \texttt{main} branch holds the report and the
+code that produces it; the \texttt{process} branch holds the full research history, including
+the roughly 150 cluster runs and the rejected branches summarised in
+Appendix~\ref{app:search}.
+
+\begin{thebibliography}{9}
+\bibitem{proxyspex} Butler, L. et al. (2025). \emph{ProxySPEX: Inference-Efficient
+Interpretability via Sparse Feature Interactions in LLMs}.
+\bibitem{lora} Hu, E. J. et al. (2021). \emph{LoRA: Low-Rank Adaptation of Large Language
+Models}. ICLR 2022.
+\bibitem{roberta} Liu, Y. et al. (2019). \emph{RoBERTa: A Robustly Optimized BERT
+Pretraining Approach}.
+\bibitem{distilbert} Sanh, V., Debut, L., Chaumond, J., Wolf, T. (2019). \emph{DistilBERT,
+a distilled version of BERT}.
+\end{thebibliography}
+
+\newpage
+\appendix
+
+\section{Architecture search}
+\label{app:search}
+
+A greedy search reached the final model, changing exactly one component of the accepted
+configuration at each step and keeping the change only when macro F1 improved. Roughly 150
+cluster runs over about 30 steps. Table~\ref{tab:chain} lists the accepted chain, and
+\texttt{docs/architecture\_search.md} on the \texttt{process} branch documents the rejected
+branches.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Accepted chain, one change per row. Every row except the last is a seed mean. No
+individual step is large enough to stand on its own, so read the chain as a direction of
+travel rather than as a sequence of separately meaningful gains. The last row
+is a single best seed of a slightly different LoRA variant and does not compare to the
+means above it; the mean-for-mean LoRA number is the row above.}
+\label{tab:chain}
+\begin{tabular}{@{}lp{7.6cm}c@{}}
+\toprule
+Configuration & Change from the row above & Macro F1 \\
+\midrule
+Linear baseline & n/a & 0.350 \\
++ balanced sampling & add WeightedRandomSampler & 0.353 \\
++ latent augmentation & Gaussian noise on \texttt{[CLS]}, 815/class (2500 with the MLP head) & 0.366 \\
++ MLP head & linear head becomes MLP-256, GELU, dropout 0.3 & 0.373 \\
++ story features & concatenate story \texttt{[CLS]} with response \texttt{[CLS]} & 0.378 \\
++ LoRA (10-seed mean) & rank-4 qv adapters, all 6 layers, skip connection & 0.375 \\
++ LoRA (best seed, not comparable) & seed 9 without opener-swap augmentation & 0.400 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Rejected directions}, each tested and abandoned: random forests; chunked features
+over openers, thirds, quarters and first-$N$ windows; class-weighted soft cross-entropy;
+label sharpening; heavy weight decay; deeper and wider MLPs; mean, attention and
+cls+mean+max pooling; partial encoder unfreezing of the top one to three layers, 14 cells,
+none beating LoRA; L1 regularisation on the LoRA delta, which collapsed to 0.276; and
+BERT-fill augmentation, which timed out before completing.
+
+\textbf{A different base encoder.} DeBERTa-v3-base was the intended comparison. It could
+not be loaded under transformers 5.x because of a SentencePiece and tiktoken
+incompatibility, so we substituted RoBERTa-base, which brings a different pretraining
+objective, a BPE tokenizer and roughly ten times the pretraining data of DistilBERT's
+teacher. Its best configuration reached 0.364, inside the same
+band as everything else.
+
+\section{Additional diagnostics}
+
+\textbf{B1. Opener probe.} Truncating each reply to its first $N$ words, encoding, and
+training a linear head gives macro F1 of 0.297, 0.310, 0.308, 0.324 and 0.350 at $N$ of 3,
+5, 10, 20 and 50, against 0.350 for the full reply. Three words alone reach 84\% of
+full-reply F1, and words past 50 add nothing measurable.
+
+\textbf{B2. Hard-label training.} Training the final model on one-hot labels taken from the
+argmax swings the bias completely. Cognitive recall falls from 79\% to 0\% while Affective
+and Motivational rise to 52\% and 67\%, and macro F1 collapses to 0.166. The argmax maps
+$[0.40, 0.30, 0.30]$, clearly Cognitive, and $[0.36, 0.34, 0.30]$, a near-tie, onto the same
+target, discarding the calibration the ratings carry.
+
+\textbf{B3. Leave-one-out influence.} Influence is spread thin without being negligible.
+96\% of training rows have absolute influence above 0.001 macro F1 and only 38\% fall below
+0.01, with mean $-0.0034$ and standard deviation 0.0193 across 1218 retrains. A small
+contiguous cluster of Study-1 rows is actively harmful, and removing any one of them
+improves test macro F1 by roughly 0.04. We did not act on this, because the influence was
+ranked against the test set and using it to clean training data would leak. Readers who saw
+either presentation should note that both decks quoted the 96\% figure against the wrong
+threshold, as ``96\% of train rows have $|$importance$| < 0.01$'', and concluded influence
+was negligible. The artefact \texttt{outputs/a4\_summary.md} reports 96.0\% above 0.001,
+with only 38.5\% below 0.01. The reading given here is the corrected one.
+
+\section{Further confusion matrices}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{figC1_extra_cms}
+\caption{Row-normalised confusion matrices for three further variants. The linear baseline
+and the RoBERTa-base variant over-answer Cognitive exactly as every cell of
+Figure~\ref{fig:grid} does, despite the encoder change. The hard-label matrix shows most
+clearly why the rating distribution matters: the Cognitive row empties completely and macro
+F1 falls to 0.166.}
+\label{fig:extra}
+\end{figure}
+
+\section{Provenance and superseded numbers}
+\label{app:prov}
+
+\textbf{Table~\ref{tab:refs}.} The label-noise floor is the macro F1 between two
+independent hard samples drawn from each row's rating shares, a proxy we use because
+continuous source ratings rule out kappa and Krippendorff's alpha. The linear-baseline row
+is a 100-seed mean, while the single checkpoint analysed in Section 5.2, at accuracy 0.719
+and macro F1 0.327, is a high-end draw from that distribution and a separate object. Run
+artefacts for the two non-neural rows were not retained, so they appear without seed
+statistics.
+
+\textbf{Table~\ref{tab:grid}.} Both baseline cells are seed-9 runs of the linear head on
+cached embeddings, recorded in \texttt{outputs/linear\_head\_feature\_sets\_seed9.json}. The
+LoRA Story+Response cell is seed 9 of the deployable checkpoint. The LoRA response-only cell
+is the one exception to seed 9: that configuration was run at seed 0 and we did not have
+cluster time to repeat it at seed 9. The LoRA
+response-only cell predates the skip connection, the decoupled learning rates and the
+opener-swap augmentation, so it understates that cell and the $+0.010$ gain above it is a
+lower bound on what LoRA achieves there. The
+frozen+MLP figure of 0.378 quoted in Section~\ref{sec:models} comes from
+\texttt{src/run\_story\_100seeds.py}, logged in \texttt{outputs/story\_100seeds\_run.log}.
+
+\textbf{Figure~\ref{fig:grid}.} Every panel is the same run as the matching cell of
+Table~\ref{tab:grid}. The LoRA Story+Response panel is seed 9 of the configuration without
+opener-swap augmentation, at F1 0.3998 against a cell mean of 0.3679, rather than a seed of
+the Table~\ref{tab:grid} LoRA cell at mean 0.3746, for which per-example predictions were
+never saved. The panels are therefore close but not strictly like for like.
+
+\textbf{Table~\ref{tab:perturb}.} Unlike Table~\ref{tab:grid}, these are averages over 10
+runs per cell. The perturbation effects are a few hundredths of macro F1, which a single run
+cannot separate from run-to-run variation, so averaging is the only way to read them. Each
+column is read against its own control, and the three controls differ. The frozen+MLP column is a 10-seed run of the Section 4 head via
+\texttt{src/frozen\_mlp\_strip\_probe.py} with control 0.368, not the 100-seed 0.3733 of
+Table~\ref{tab:grid}. The linear-baseline column is the Table~\ref{tab:refs} model. The
+LoRA column omits the opener-swap augmentation, giving control 0.368 rather than 0.3746.
+The swap rows compare within the LoRA model only.
+
+\end{document}
