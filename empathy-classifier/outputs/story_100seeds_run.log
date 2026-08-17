@@ -1,0 +1,15 @@
+response-only aug train: (7500, 768)
+story+response aug train: (7500, 1536)
+
+Running response-only champion (N=100 seeds)...
+  acc 0.5847±0.0301   F1 0.3733±0.0105   ep 25.2
+
+Running story+response candidate (N=100 seeds)...
+  acc 0.5605±0.0353   F1 0.3779±0.0134   ep 31.5
+Traceback (most recent call last):
+  File "/Users/stolk/github/LLMES/empathy-classifier/src/run_story_100seeds.py", line 98, in <module>
+    main()
+  File "/Users/stolk/github/LLMES/empathy-classifier/src/run_story_100seeds.py", line 68, in main
+    f1_ref = np.array(r_ref['f1s']); f1_new = np.array(r_new['f1s'])
+                      ~~~~~^^^^^^^
+KeyError: 'f1s'

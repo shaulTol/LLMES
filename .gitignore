@@ -1,6 +1,14 @@
 # Markdown plan files
 plan_empathy_text_eda_notebook.md
 
+# Local editor/session config
+.claude/
+
+# Build artifacts. The report PDF and its figures are generated, not source:
+#   cd empathy-classifier && python docs/final_paper.py
+*.pdf
+empathy-classifier/docs/_paper_figs/
+
 # Python
 __pycache__/
 *.py[cod]
