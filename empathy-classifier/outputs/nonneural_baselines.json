@@ -1,0 +1,25 @@
+{
+ "tfidf_logreg": {
+  "accuracy": 0.6322525597269625,
+  "macro_f1": 0.37951550084945884
+ },
+ "opener_regex": {
+  "accuracy": 0.5665529010238908,
+  "macro_f1": 0.3434453484258932
+ },
+ "always_cognitive": {
+  "accuracy": 0.7337883959044369,
+  "macro_f1": 0.2821522309711286
+ },
+ "_meta": {
+  "seed": 9,
+  "n_train": 1218,
+  "n_test": 1172,
+  "fallback_class": 0,
+  "rules": [
+   "^\\s*i'?m (really |so |truly )?sorry",
+   "^\\s*(i (truly |really )?feel for you|i can only imagine|my heart)",
+   "^\\s*(it'?s (clear|evident|understandable)|it sounds like|i can (see|sense|understand)|you must have)"
+  ]
+ }
+}
